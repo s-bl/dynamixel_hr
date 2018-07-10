@@ -255,6 +255,53 @@ class DxlChain:
         if len(data)!=esize:        
             raise DxlCommunicationException('Motor ID %d did not retrieve expected register %s size %d: got %d bytes'%(id,name,esize,len(data)))
 
+    def bulk_read(self, ids, reg_names):
+
+        payload = [Dxl.CMD_BULK_READ, 0x00]
+
+        for id, reg_name in zip(ids, reg_names):
+
+            if id not in self.motors.keys():
+                raise DxlConfigurationException("Motor ID %d cannot be found in chain" % id)
+
+            m = self.motors[id]
+            if reg_name not in m.registers.keys():
+                raise DxlConfigurationException(
+                    "Synchronized read %s impossible on chain, register absent from motor ID %d" % (reg_name, id))
+
+            r = m.registers[reg_name]
+
+            payload.append(r.size)
+            payload.append(id)
+            payload.append(r.address)
+
+        self.send(Dxl.BROADCAST, payload)
+
+        # Retrieve response. packages from motors come unordered one after another
+        res = []
+
+        for _ in range(len(ids)):
+            (nid, data) = self.recv()
+            m = self.motors[nid]
+            r = m.registers[reg_names[ids.index(nid)]]
+
+            if len(data) != r.size:
+                raise DxlCommunicationException(
+                    'Motor ID %d did not retrieve expected register %s size %d: got %d bytes' % (
+                    id, name, r.size, len(data)))
+
+            res.append((nid, r.fromdxl(data)))
+
+        return res
+
+    def sync_read_pos(self, ids):
+
+        return bulk_read(self, ids, ['present_position'] * len(ids))
+
+    def sync_read_temp(self, ids):
+
+        return bulk_read(self, ids, ['present_temp'] * len(ids))
+
     
     def sync_write_pos_speed(self,ids,positions,speeds): 
         """Performs a synchronized write of 'goal_pos' and 'moving_speed' registers for a set of motors (if possible)"""

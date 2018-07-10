@@ -25,6 +25,8 @@ class Dxl:
     CMD_ACTION     = 0x05
     CMD_RESET      = 0x06
     CMD_SYNC_WRITE = 0x83
+    CMD_SYNC_READ  = 0x82
+    CMD_BULK_READ  = 0x92
 
 
 def get_model_name(model_number):
