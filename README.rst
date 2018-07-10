@@ -1,6 +1,14 @@
 HumaRobotics Dynamixel Library
 ########################################################
 
+Changes in this fork
+==========================
+
+2018-07-10: Ported library to Python 3. Added bulk read.
+
+Original
+==========================
+
 HumaRobotics Dynamixel Library is a Python 2.7 library for programming Robotis Dynamixel motors directly from python or through the ROS bindings provided separately in https://github.com/HumaRobotics/dynamixel_hr_ros .
 It also comes with a GUI that allows to quickly identify/configure/manipulate your motors.
 
