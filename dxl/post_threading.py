@@ -58,9 +58,9 @@ if __name__=="__main__":
         
         def do(self,param):
             import time
-            print "Doing... param="+str(param)
+            print("Doing... param="+str(param))
             time.sleep(2)
-            print "Done"
+            print("Done")
             return param
             
 
@@ -70,6 +70,6 @@ if __name__=="__main__":
     dummy.post.do("post2")
     t3=dummy.post.do("post3")
     t3.join()
-    print t3.result
-    print "Finished"
+    print(t3.result)
+    print("Finished")
     

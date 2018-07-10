@@ -94,8 +94,7 @@ class DxlMotorAX12(DxlMotorAXMX):
         self.sort()
 
 
-class DxlMotorAX12A(DxlMotorAX12):
-    __metaclass__=ModelRegisteringMetaclass
+class DxlMotorAX12A(DxlMotorAX12, metaclass=ModelRegisteringMetaclass):
     model_name="AX12A"
     model_number=12
     documentation_url="http://support.robotis.com/en/product/dynamixel/ax_series/dxl_ax_actuator.htm"
@@ -104,8 +103,8 @@ class DxlMotorAX12A(DxlMotorAX12):
     def __init__(self):
         DxlMotorAX12.__init__(self)
 
-class DxlMotorAX12W(DxlMotorAX12):
-    __metaclass__=ModelRegisteringMetaclass
+
+class DxlMotorAX12W(DxlMotorAX12, metaclass=ModelRegisteringMetaclass):
     model_name="AX12W"
     model_number=300
     documentation_url="http://support.robotis.com/en/product/dynamixel/ax_series/ax-12w.htm"
@@ -114,8 +113,7 @@ class DxlMotorAX12W(DxlMotorAX12):
     def __init__(self):
         DxlMotorAX12.__init__(self)
 
-class DxlMotorAX18(DxlMotorAXMX):
-    __metaclass__=ModelRegisteringMetaclass
+class DxlMotorAX18(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     model_name="AX18"
     model_number=18
     documentation_url="http://support.robotis.com/en/product/dynamixel/ax_series/ax-18f.htm"    
@@ -135,8 +133,7 @@ class DxlMotorAX18(DxlMotorAXMX):
 
         self.sort()
                 
-class DxlMotorMX12W(DxlMotorAXMX):
-    __metaclass__=ModelRegisteringMetaclass
+class DxlMotorMX12W(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     model_name="MX12W"
     model_number=360
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-12w.htm"
@@ -155,8 +152,7 @@ class DxlMotorMX12W(DxlMotorAXMX):
 
         self.sort()
 
-class DxlMotorMX28(DxlMotorAXMX):
-    __metaclass__=ModelRegisteringMetaclass
+class DxlMotorMX28(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     model_name="MX28"
     model_number=29
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm"
@@ -175,8 +171,7 @@ class DxlMotorMX28(DxlMotorAXMX):
 
         self.sort()
 
-class DxlMotorMX64(DxlMotorAXMX):
-    __metaclass__=ModelRegisteringMetaclass
+class DxlMotorMX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     model_name="MX64"
     model_number=310
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-64.htm"
@@ -195,8 +190,7 @@ class DxlMotorMX64(DxlMotorAXMX):
         
         self.sort()
   
-class DxlMotorRX64(DxlMotorAXMX):
-    __metaclass__=ModelRegisteringMetaclass
+class DxlMotorRX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     model_name="RX64"
     model_number=64
     documentation_url="http://support.robotis.com/en/product/dynamixel/rx_series/rx-64.htm"
@@ -216,8 +210,7 @@ class DxlMotorRX64(DxlMotorAXMX):
 
         self.sort()
 
-class DxlMotorMX106(DxlMotorAXMX):
-    __metaclass__=ModelRegisteringMetaclass
+class DxlMotorMX106(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     model_name="MX106"
     model_number=320
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-106.htm"

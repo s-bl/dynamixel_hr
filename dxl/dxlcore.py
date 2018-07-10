@@ -57,7 +57,7 @@ class DxlElement(object):
     @classmethod
     def instantiateMotor(cls,id,model_number):
         if not model_number in cls.DxlModels.keys():
-            raise DxlConfigurationException,"Cannot instantiate non registered element model %d on ID %d"%(model_number,id)
+            raise DxlConfigurationException("Cannot instantiate non registered element model %d on ID %d"%(model_number,id))
         mcls=cls.DxlModels[model_number]
         return mcls()
         
@@ -65,30 +65,31 @@ class DxlElement(object):
         
     def getRegisterCmd(self,name):
         if not name in self.registers.keys():
-            raise DxlConfigurationException,"Model %s has no register called %s"%(name,self.model_name)
+            raise DxlConfigurationException("Model %s has no register called %s"%(name,self.model_name))
         r=self.registers[name]
         if not 'r' in r.mode:
-            raise DxlConfigurationException,"Register %s is not readable"%(name)
+            raise DxlConfigurationException("Register %s is not readable"%(name))
         return (r.size,[Dxl.CMD_READ_DATA,r.address,r.size])
 
     def setRegisterCmd(self,name,value):
         if not name in self.registers.keys():
-            raise DxlConfigurationException,"Model %s has no register called %s"%(self.model_name,name)
+            raise DxlConfigurationException("Model %s has no register called %s"%(self.model_name,name))
         r=self.registers[name]
         if not 'w' in r.mode:
-            raise DxlConfigurationException,"Register %s is not writable"%(name)
+            raise DxlConfigurationException("Register %s is not writable"%(name))
         if r.size!=len(value):
-            raise DxlConfigurationException,"Model %s register %s has size %d: passed size %d"%(self.model_name,name,r.size,len(value))
+            raise DxlConfigurationException("Model %s register %s has size %d: passed size %d"%(self.model_name,name,r.size,len(value)))
             
         return (0,[Dxl.CMD_WRITE_DATA,r.address]+value )
 
     def sort(self):
-        self.registers = OrderedDict( sorted(self.registers.iteritems(), key=lambda x: x[1].address) )
+        self.registers = OrderedDict( sorted(self.registers.items(), key=lambda x: x[1].address) )
         
     def baud_to_si(self,val):
         return int(2000000/(val+1))
 
-    def si_to_baud(self,val):        
+    def si_to_baud(self,val):
+        irint(ids)
         return int(2000000/(val)-1)
 
 
