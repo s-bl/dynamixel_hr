@@ -24,9 +24,9 @@ class Dxl:
     CMD_REG_WRITE  = 0x04
     CMD_ACTION     = 0x05
     CMD_RESET      = 0x06
-    CMD_SYNC_WRITE = 0x83
+    CMD_SYNC_WRITE = 0x83  # write to multiple devices with same register
     CMD_SYNC_READ  = 0x82
-    CMD_BULK_READ  = 0x92
+    CMD_BULK_READ  = 0x92 # read from multiple devices with different register
 
 
 def get_model_name(model_number):

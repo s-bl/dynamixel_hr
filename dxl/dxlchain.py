@@ -19,10 +19,6 @@ import array
 from collections import OrderedDict
 from post_threading import Post
 
-
-    
-        
-        
 class DxlChain:
     """
     Manages a list of Dynamixel motors on the same serial link.
@@ -88,6 +84,7 @@ class DxlChain:
             
     def _send(self, id, packet):
         """ Takes a payload, packages it as [header,id,length,payload,checksum], sends it on serial and flush"""
+#        checksumed_data = [id, len(packet)+1] + packet
         checksumed_data = [id, len(packet)+1] + packet
 
         # data="".join(map(chr, [0xFF, 0xFF] + checksumed_data + [self.checksum(checksumed_data)]))
@@ -185,9 +182,9 @@ class DxlChain:
             raise DxlCommunicationException('Read command did not obtain the %d bytes expected: got %d bytes'%(size,len(data)))
         return data
 
-    def _write(self,id,address,values):        
+    def _write(self, id, register, values):
         """Write data to a motor registers"""
-        self._comm(id,[Dxl.CMD_WRITE_DATA,register,values])
+        self._comm(id,[Dxl.CMD_WRITE_DATA, register, values])
 
 
     def get_model_number(self,id):
@@ -255,6 +252,84 @@ class DxlChain:
         if len(data)!=esize:        
             raise DxlCommunicationException('Motor ID %d did not retrieve expected register %s size %d: got %d bytes'%(id,name,esize,len(data)))
 
+
+    def set_control_mode(self, id, mode):
+        m = self.motors[id]
+        if m.control_mode is None:
+            # determine control mode
+            if "torque_control_mode_enable" in m.registers and self.get_reg(id, "torque_control_mode_enable") == 1:
+                m.control_mode = m.TorqueControl
+            elif self.get_reg(id, "ccw_angle_limit") == 0:
+                m.control_mode = m.SpeedControl
+            else:
+                m.control_mode = m.PositionControl
+
+        if m.control_mode != mode:
+            if m.control_mode == m.TorqueControl and "torque_control_mode_enable" in m.registers:
+                self.set_reg(id, "torque_control_mode_enable", 0)
+            if m.control_mode == m.SpeedControl:
+                self.set_reg(id, "moving_speed", 100) # we set this to a small value that the motor can move in pos control
+            if mode == m.SpeedControl:
+                m.cw_angle_limit = self.get_reg(id, "cw_angle_limit")
+                m.ccw_angle_limit = self.get_reg(id, "ccw_angle_limit")
+                self.set_reg(id, "cw_angle_limit", 0)
+                self.set_reg(id, "ccw_angle_limit", 0)
+                m.control_mode = mode
+            elif mode == m.PositionControl:
+                if m.ccw_angle_limit is 0 or m.ccw_angle_limit is None:
+                    m.cw_angle_limit, m.ccw_angle_limit = m.registers["goal_pos"].range
+                self.set_reg(id, "cw_angle_limit", m.cw_angle_limit)
+                self.set_reg(id, "ccw_angle_limit", m.ccw_angle_limit)
+                # self.set_reg(id, "goal_pos", self.get_reg(id, "present_position"))
+                m.control_mode = mode
+            elif mode == m.TorqueControl:
+                if "torque_control_mode_enable" in m.registers:
+                    self.set_reg(id, "torque_control_mode_enable", 1)
+                    m.control_mode = mode
+                else:
+                    logging.warning("Set Torque mode failed: Motor id {}" % (id))
+
+
+
+    # # Todo: check for sync_read and if it is faster
+    # # does not work
+    # def sync_read(self, ids, reg_name):
+    #
+    #     payload = [Dxl.CMD_SYNC_READ, 0x00]
+    #
+    #     m = self.motors[ids[0]]
+    #     if reg_name not in m.registers.keys():
+    #         raise DxlConfigurationException(
+    #             "Synchronized read %s impossible on chain, register absent from motor ID %d" % (reg_name, ids[0]))
+    #     r = m.registers[reg_name]
+    #     payload.append(r.address)
+    #     payload.append(r.size)
+    #
+    #     for id in ids:
+    #         if id not in self.motors.keys():
+    #             raise DxlConfigurationException("Motor ID %d cannot be found in chain" % id)
+    #         payload.append(id)
+    #
+    #     self.send(Dxl.BROADCAST, payload)
+    #
+    #     # Retrieve response. packages from motors come unordered one after another
+    #     res = []
+    #
+    #     for _ in range(len(ids)):
+    #         (nid, data) = self.recv()
+    #         m = self.motors[nid]
+    #         r = m.registers[reg_name]
+    #
+    #         if len(data) != r.size:
+    #             raise DxlCommunicationException(
+    #                 'Motor ID %d did not retrieve expected register %s size %d: got %d bytes' % (
+    #                 id, reg_name, r.size, len(data)))
+    #
+    #         res.append((nid, r.fromdxl(data)))
+    #
+    #     return res
+
+
     def bulk_read(self, ids, reg_names):
 
         payload = [Dxl.CMD_BULK_READ, 0x00]
@@ -283,24 +358,36 @@ class DxlChain:
         for _ in range(len(ids)):
             (nid, data) = self.recv()
             m = self.motors[nid]
-            r = m.registers[reg_names[ids.index(nid)]]
+            reg_name =reg_names[ids.index(nid)]
+            r = m.registers[reg_name]
 
             if len(data) != r.size:
                 raise DxlCommunicationException(
                     'Motor ID %d did not retrieve expected register %s size %d: got %d bytes' % (
-                    id, name, r.size, len(data)))
+                    id, reg_name, r.size, len(data)))
 
             res.append((nid, r.fromdxl(data)))
 
         return res
 
-    def sync_read_pos(self, ids):
 
-        return bulk_read(self, ids, ['present_position'] * len(ids))
+    def sync_read_pos(self, ids=None):
+        return self._sync_read_X_wrapper(ids, 'present_position')
 
-    def sync_read_temp(self, ids):
+    def sync_read_speed(self, ids=None):
+        return self._sync_read_X_wrapper(ids, 'present_speed')
 
-        return bulk_read(self, ids, ['present_temp'] * len(ids))
+    def sync_read_load(self, ids=None):
+        return self._sync_read_X_wrapper(ids, 'present_load')
+
+    def sync_read_temp(self, ids=None):
+        return self._sync_read_X_wrapper(ids, 'present_temp')
+
+    # Todo: use sync read if it works
+    def _sync_read_X_wrapper(self, ids, register):
+        if ids is None:
+            ids = self.motors
+        return dict(self.bulk_read(ids, [register] * len(ids)))
 
     
     def sync_write_pos_speed(self,ids,positions,speeds): 
@@ -350,10 +437,7 @@ class DxlChain:
             payload.extend(regspeed.todxl(speed))
             
         self.send(Dxl.BROADCAST,payload) 
-            
 
-
-    
     
     def sync_write_pos(self,ids,positions):
         """Performs a synchronized write of 'goal_pos' register for a set of motors (if possible)"""
@@ -383,8 +467,11 @@ class DxlChain:
             payload.append(id)
             payload.extend(reg.todxl(pos))
             
-        self.send(Dxl.BROADCAST,payload) 
-    
+        self.send(Dxl.BROADCAST,payload)
+
+
+
+
     def to_si(self,id,name,v):        
         """Converts a motor register value from dynamixel format to SI units"""
         reg=self.motors[id].registers[name]

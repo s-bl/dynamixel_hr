@@ -23,7 +23,10 @@ class DxlMotor(DxlElement):
 
     
 class DxlMotorAXMX(DxlMotor):
-    
+    PositionControl = 1
+    SpeedControl = 2
+    TorqueControl = 3
+
     def __init__(self):
         DxlMotor.__init__(self)
 
@@ -31,9 +34,9 @@ class DxlMotorAXMX(DxlMotor):
         self.registers["firmware"]=             DxlRegisterByte(0x02,'r',eeprom=True)
         self.registers["id"]=                   DxlRegisterByte(0x03,'rw',eeprom=True)
         self.registers["baud_rate"]=            DxlRegisterByte(0x04,'rw',eeprom=True,tosi=self.baud_to_si,fromsi=self.si_to_baud)
-        self.registers["return_delay"]=         DxlRegisterByte(0x05,'rw',eeprom=True,tosi=self.pos_to_si,fromsi=self.si_to_pos)
+        self.registers["return_delay"]=         DxlRegisterByte(0x05,'rw',eeprom=True)
         self.registers["cw_angle_limit"]=       DxlRegisterWord(0x06,'rw',eeprom=True,tosi=self.pos_to_si,fromsi=self.si_to_pos)
-        self.registers["ccw_angle_limit"]=      DxlRegisterWord(0x08,'rw',eeprom=True)
+        self.registers["ccw_angle_limit"]=      DxlRegisterWord(0x08,'rw',eeprom=True,tosi=self.pos_to_si,fromsi=self.si_to_pos)
         self.registers["high_temp_limit"]=      DxlRegisterByte(0x0b,'rw',eeprom=True)
         self.registers["low_voltage_limit"]=    DxlRegisterByte(0x0c,'rw',eeprom=True)
         self.registers["high_voltage_limit"]=   DxlRegisterByte(0x0d,'rw',eeprom=True)
@@ -60,6 +63,10 @@ class DxlMotorAXMX(DxlMotor):
         self.registers["moving"]=               DxlRegisterByte(0x2E,'r')
         self.registers["lock"]=                 DxlRegisterByte(0x2F,'rw',range=[0,1])
         self.registers["punch"]=                DxlRegisterWord(0x30,'rw',range=[0x20,0x3ff])
+
+        self.control_mode = None
+        self.cw_angle_limit = 0
+        self.ccw_angle_limit = None
         
         self.sort()
 
@@ -113,6 +120,7 @@ class DxlMotorAX12W(DxlMotorAX12, metaclass=ModelRegisteringMetaclass):
     def __init__(self):
         DxlMotorAX12.__init__(self)
 
+
 class DxlMotorAX18(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     model_name="AX18"
     model_number=18
@@ -132,8 +140,19 @@ class DxlMotorAX18(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
         self.registers["moving_speed"]=         DxlRegisterWord(0x20,'rw',range=[0,1023],tosi=self.speed_to_si,fromsi=self.si_to_speed)
 
         self.sort()
-                
-class DxlMotorMX12W(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
+
+
+class DxlMotorMXBase(DxlMotorAXMX):
+
+    def __init__(self):
+        DxlMotorAXMX.__init__(self)
+        self.registers["torque_control_mode_enable"] = DxlRegisterByte(0x46, 'rw', range=[0, 1])
+        self.registers["goal_torque"] = DxlRegisterWord(0x47, 'rw', range=[0, 1023])
+
+        self.sort()
+
+
+class DxlMotorMX12W(DxlMotorMXBase, metaclass=ModelRegisteringMetaclass):
     model_name="MX12W"
     model_number=360
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-12w.htm"
@@ -141,18 +160,17 @@ class DxlMotorMX12W(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     tick_to_rpm=0.114
 
     def __init__(self):
-        DxlMotorAXMX.__init__(self)
+        super().__init__()
 
         self.registers["p_gain"]=               DxlRegisterByte(0x1C,'rw')
         self.registers["i_gain"]=               DxlRegisterByte(0x1B,'rw')
         self.registers["d_gain"]=               DxlRegisterByte(0x1A,'rw')
         
         self.registers["goal_pos"]=             DxlRegisterWord(0x1E,'rw',range=[0,4095],tosi=self.pos_to_si,fromsi=self.si_to_pos)
-        self.registers["moving_speed"]=         DxlRegisterWord(0x20,'rw',range=[0,1023],tosi=self.speed_to_si,fromsi=self.si_to_speed)
 
         self.sort()
 
-class DxlMotorMX28(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
+class DxlMotorMX28(DxlMotorMXBase, metaclass=ModelRegisteringMetaclass):
     model_name="MX28"
     model_number=29
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm"
@@ -160,7 +178,7 @@ class DxlMotorMX28(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     tick_to_rpm=0.114
 
     def __init__(self):
-        DxlMotorAXMX.__init__(self)
+        super().__init__()
 
         self.registers["d_gain"]=               DxlRegisterByte(0x1A,'rw')
         self.registers["i_gain"]=               DxlRegisterByte(0x1B,'rw')
@@ -171,7 +189,7 @@ class DxlMotorMX28(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
 
         self.sort()
 
-class DxlMotorMX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
+class DxlMotorMX64(DxlMotorMXBase, metaclass=ModelRegisteringMetaclass):
     model_name="MX64"
     model_number=310
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-64.htm"
@@ -179,7 +197,7 @@ class DxlMotorMX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     tick_to_rpm=0.114
 
     def __init__(self):
-        DxlMotorAXMX.__init__(self)
+        super().__init__()
         
         self.registers["d_gain"]=               DxlRegisterByte(0x1A,'rw')
         self.registers["i_gain"]=               DxlRegisterByte(0x1B,'rw')
@@ -187,10 +205,10 @@ class DxlMotorMX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
 
         self.registers["goal_pos"]=             DxlRegisterWord(0x1E,'rw',range=[0,4095],tosi=self.pos_to_si,fromsi=self.si_to_pos)
         self.registers["moving_speed"]=         DxlRegisterWord(0x20,'rw',range=[0,1023],tosi=self.speed_to_si,fromsi=self.si_to_speed)
-        
+
         self.sort()
   
-class DxlMotorRX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
+class DxlMotorRX64(DxlMotorMXBase, metaclass=ModelRegisteringMetaclass):
     model_name="RX64"
     model_number=64
     documentation_url="http://support.robotis.com/en/product/dynamixel/rx_series/rx-64.htm"
@@ -198,7 +216,7 @@ class DxlMotorRX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
     tick_to_rpm=0.111
 
     def __init__(self):
-        DxlMotorAXMX.__init__(self)
+        super().__init__()
 
         self.registers["cw_compliance_margin"]= DxlRegisterByte(0x1A,'rw')
         self.registers["ccw_compliance_margin"]=DxlRegisterByte(0x1B,'rw')
@@ -210,14 +228,14 @@ class DxlMotorRX64(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
 
         self.sort()
 
-class DxlMotorMX106(DxlMotorAXMX, metaclass=ModelRegisteringMetaclass):
+class DxlMotorMX106(DxlMotorMXBase, metaclass=ModelRegisteringMetaclass):
     model_name="MX106"
     model_number=320
     documentation_url="http://support.robotis.com/en/product/dynamixel/mx_series/mx-106.htm"
     tick_to_rad=0.00153588974175501002769284787627
 
     def __init__(self):
-        DxlMotorAXMX.__init__(self)
+        super().__init__()
         
         self.registers["d_gain"]=               DxlRegisterByte(0x1A,'rw')
         self.registers["i_gain"]=               DxlRegisterByte(0x1B,'rw')
