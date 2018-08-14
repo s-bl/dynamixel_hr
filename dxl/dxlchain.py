@@ -253,17 +253,20 @@ class DxlChain:
         if len(data)!=esize:        
             raise DxlCommunicationException('Motor ID %d did not retrieve expected register %s size %d: got %d bytes'%(id,name,esize,len(data)))
 
+    def determine_control_mode(self, id):
+        m = self.motors[id]
+        if "torque_control_mode_enable" in m.registers and self.get_reg(id, "torque_control_mode_enable") == 1:
+            m.control_mode = m.TorqueControl
+        elif self.get_reg(id, "ccw_angle_limit") == 0:
+            m.control_mode = m.SpeedControl
+        else:
+            m.control_mode = m.PositionControl
+
 
     def set_control_mode(self, id, mode):
         m = self.motors[id]
         if m.control_mode is None:
-            # determine control mode
-            if "torque_control_mode_enable" in m.registers and self.get_reg(id, "torque_control_mode_enable") == 1:
-                m.control_mode = m.TorqueControl
-            elif self.get_reg(id, "ccw_angle_limit") == 0:
-                m.control_mode = m.SpeedControl
-            else:
-                m.control_mode = m.PositionControl
+            self.determine_control_mode(self,id)
 
         if m.control_mode != mode:
             if m.control_mode == m.TorqueControl and "torque_control_mode_enable" in m.registers:
