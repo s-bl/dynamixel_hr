@@ -3,8 +3,8 @@
 
 # WINDOWS WARNING: For best performance, parameters of the COM Port should be set to maximum baud rate, and 1ms delay (Device Manager, COM Ports, properties, advanced)
 
-from .dxlcore import *
-from .dxlregisters import *
+from dxlcore import *
+from dxlregisters import *
 
 
 
@@ -42,5 +42,4 @@ class DxlControllerCM730(DxlController):
         self.registers["acc_z"]=         DxlRegisterWord(0x30,'r')        
         
         self.sort()
-                
                 
