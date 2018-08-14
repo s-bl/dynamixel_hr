@@ -172,7 +172,7 @@ class DxlChain:
                 (id,data)=self._recv()
                 l.append(id)
             except DxlCommunicationException:
-                break            
+                break
         return l
 
 
@@ -365,7 +365,7 @@ class DxlChain:
             if len(data) != r.size:
                 raise DxlCommunicationException(
                     'Motor ID %d did not retrieve expected register %s size %d: got %d bytes' % (
-                    id, reg_name, r.size, len(data)))
+                    nid, reg_name, r.size, len(data)))
 
             res.append((nid, r.fromdxl(data)))
 
@@ -406,7 +406,7 @@ class DxlChain:
 
                 if reg not in m.registers.keys():
                     raise DxlConfigurationException(
-                        "Synchronized read %s impossible on chain, register absent from motor ID %d" % (reg_name, id))
+                        "Read %s impossible on chain, register absent from motor ID %d" % (reg, id))
 
                 r = m.registers[reg]
                 tot_size += r.size
@@ -538,8 +538,31 @@ class DxlChain:
             
         self.send(Dxl.BROADCAST,payload)
 
+    def sync_write_x(self, ids, reg, vals):
+        """Performs a synchronized write of given register for a set of motors (if possible)"""
 
+        # Check motor IDs, goal_pos and moving_speed register address and sizes
+        for id in ids:
 
+            if id not in self.motors.keys():
+                raise DxlConfigurationException("Motor ID %d cannot be found in chain"%id)
+
+            m=self.motors[id]
+
+            if reg not in m.registers.keys():
+                raise DxlConfigurationException("Synchronized write %s impossible on chain, register absent from motor ID %d"%(reg,id))
+
+            r = m.registers[reg]
+
+        # Everything is ok, build command and send
+        payload= [Dxl.CMD_SYNC_WRITE,r.address,r.size]
+        for i in range(0,len(ids)):
+            id=ids[i]
+            val=vals[i]
+            payload.append(id)
+            payload.extend(r.todxl(val))
+
+        self.send(Dxl.BROADCAST,payload)
 
     def to_si(self,id,name,v):        
         """Converts a motor register value from dynamixel format to SI units"""
