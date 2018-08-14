@@ -266,7 +266,7 @@ class DxlChain:
     def set_control_mode(self, id, mode):
         m = self.motors[id]
         if m.control_mode is None:
-            self.determine_control_mode(self,id)
+            self.determine_control_mode(id)
 
         if m.control_mode != mode:
             if m.control_mode == m.TorqueControl and "torque_control_mode_enable" in m.registers:
@@ -512,34 +512,7 @@ class DxlChain:
         self.send(Dxl.BROADCAST,payload)
 
     def sync_write_pos(self,ids,positions):
-        """Performs a synchronized write of 'goal_pos' register for a set of motors (if possible)"""
-        reg=None
-        # Check motor IDs, goal_pos and moving_speed register address and sizes
-        for id in ids:
-            if id not in self.motors.keys():
-                raise DxlConfigurationException("Motor ID %d cannot be found in chain"%id)
-            m=self.motors[id]
-            reg_name="goal_pos"
-            if reg_name not in m.registers.keys():
-                raise DxlConfigurationException("Synchronized write %s impossible on chain, register absent from motor ID %d"%(reg_name,id))
-            r=m.registers[reg_name]
-            if reg==None:
-                reg=r
-            else:
-                if reg.address!=r.address:
-                    raise DxlConfigurationException("Synchronized write %s impossible on chain, mismatch in register address for motor ID %d"%(reg_name,id))
-                if reg.size!=r.size:
-                    raise DxlConfigurationException("Synchronized write %s impossible on chain, mismatch in register size for motor ID %d"(reg_name,id))
-                
-        # Everything is ok, build command and send
-        payload= [Dxl.CMD_SYNC_WRITE,reg.address,reg.size]
-        for i in range(0,len(ids)):
-            id=ids[i]
-            pos=positions[i]
-            payload.append(id)
-            payload.extend(reg.todxl(pos))
-            
-        self.send(Dxl.BROADCAST,payload)
+        self.sync_write_x(ids,"goal_pos", positions)
 
     def sync_write_x(self, ids, reg, vals):
         """Performs a synchronized write of given register for a set of motors (if possible)"""
