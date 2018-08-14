@@ -4,11 +4,11 @@
 
 # WINDOWS WARNING: For best performance, parameters of the COM Port should be set to maximum baud rate, and 1ms delay (Device Manager, COM Ports, properties, advanced)
 
-from .dxlcore import *
-from .dxlregisters import *
-from .dxlmotors import *
-from .dxlsensors import *
-from .post_threading import Post
+from dxlcore import *
+from dxlregisters import *
+from dxlmotors import *
+from dxlsensors import *
+from post_threading import Post
 
 import sys
 import serial
@@ -375,6 +375,75 @@ class DxlChain:
         return res
 
 
+    def bulk_multi_read(self, ids=None, user_regs=None):
+
+        ids = self.get_motors(ids) # returns all motors if ids is None
+
+        "Needs to be consecutive list of registers"
+        regs = ['goal_pos',
+                'moving_speed',
+                'torque_limit',
+                'present_position',
+                'present_speed',
+                'present_load',
+                'present_voltage',
+                'present_temp'
+                ]
+
+        if user_regs is not None:
+            regs = user_regs
+
+        payload = [Dxl.CMD_BULK_READ, 0x00]
+
+        tot_sizes = dict()
+
+        for id in ids:
+
+            if id not in self.motors.keys():
+                raise DxlConfigurationException("Motor ID %d cannot be found in chain" % id)
+
+            m = self.motors[id]
+
+            tot_size = 0
+            for reg in regs:
+
+                if reg not in m.registers.keys():
+                    raise DxlConfigurationException(
+                        "Synchronized read %s impossible on chain, register absent from motor ID %d" % (reg_name, id))
+
+                r = m.registers[reg]
+                tot_size += r.size
+                tot_sizes[id] = tot_size
+
+            payload.append(tot_size)
+            payload.append(id)
+            fst_addr = m.registers[regs[0]].address # address of first register
+            payload.append(fst_addr)
+
+        self.send(Dxl.BROADCAST, payload)
+
+        # Retrieve response. packages from motors come unordered one after another
+        res = []
+
+        for _ in ids:
+            (nid, data) = self.recv()
+
+            if len(data) != tot_sizes[nid]:
+                raise DxlCommunicationException(
+                    'Motor ID %d did not retrieve expected register size %d: got %d bytes' % (
+                    nid, tot_sizes[nid], len(data)))
+
+            m = self.motors[nid]
+            blob = (nid, {})
+            counter = 0
+            for reg in regs:
+                r = m.registers[reg]
+                blob[1][reg] = r.fromdxl(data[counter:counter+r.size])
+                counter += r.size
+            res.append(blob)
+
+        return dict(res)
+
     def sync_read_pos(self, ids=None):
         return self._sync_read_X_wrapper(ids, 'present_position')
 
@@ -440,9 +509,8 @@ class DxlChain:
             payload.extend(regpos.todxl(pos))
             payload.extend(regspeed.todxl(speed))
             
-        self.send(Dxl.BROADCAST,payload) 
+        self.send(Dxl.BROADCAST,payload)
 
-    
     def sync_write_pos(self,ids,positions):
         """Performs a synchronized write of 'goal_pos' register for a set of motors (if possible)"""
         reg=None
@@ -672,4 +740,3 @@ class DxlChain:
         for k,v in d.items():
             pos[int(k)]=v            
         self.set_position(pos,blocking)
-        
