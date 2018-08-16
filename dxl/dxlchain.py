@@ -215,6 +215,54 @@ class DxlChain:
         logging.info('Motor ID %d get register %s: %d'%(id,name,v) )
         return v
 
+    def get_multi_reg(self,id,user_regs=None):
+        return self.get_multi_reg_si(id,user_regs=user_regs,to_si=False)
+
+    def get_multi_reg_si(self,id,user_regs=None,to_si=True):
+        """Read consecutive list of registers from a motor"""
+        if id not in self.motors.keys():
+            raise DxlConfigurationException('Motor ID %d does not exist on the chain'%(id))
+        m=self.motors[id]
+
+        "Needs to be consecutive list of registers"
+        regs = ['goal_pos',
+                'moving_speed',
+                'torque_limit',
+                'present_position',
+                'present_speed',
+                'present_load',
+                'present_voltage',
+                'present_temp'
+                ]
+
+        if user_regs is not None:
+            regs = user_regs
+
+        r = m.registers[regs[0]]
+        fst_addr = r.address
+
+        tot_size = 0
+        for reg in regs:
+            r = m.registers[reg]
+            tot_size += r.size
+
+        cmd = [Dxl.CMD_READ_DATA,fst_addr,tot_size]
+
+        (nid,data)=self.comm(id,cmd)
+        if len(data)!=tot_size:
+            raise DxlCommunicationException('Motor ID %d did not retrieve expected register %s size %d: got %d bytes'%(id,name,esize,len(data)))
+
+        response =  dict()
+        counter = 0
+        for reg in regs:
+            r = m.registers[reg]
+            response[reg] = r.fromdxl(data[counter:counter+r.size])
+            if to_si:
+                response[reg] = r.tosi(response[reg])
+            counter += r.size
+
+        return response
+
     def get_reg_si(self,id,name):
         """Read a named register from a motor and returns value converted to SI units"""
         if id not in self.motors.keys():
