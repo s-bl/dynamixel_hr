@@ -114,11 +114,27 @@ class DxlChain:
                 
             if len(data)>0:
                 error=data[0]
+                if error & 0x01!=0: # Bit 0: Input Voltage Error
+                    logging.warning("Dynamixel: Voltage Error (id %i)" % (id))
+                if error & 0x02 != 0: # Bit 1: Angle Limit Error
+                    logging.info("Dynamixel: angle limit error (id %i)" % (id))
+                if error & 0x04 != 0: # Bit 2: Overheating Error
+                    logging.warning("Dynamixel: overheating (id %i)" % (id))
+                    self.error_occurred_flag = True
+                if error & 0x08 != 0: # Bit 3: Range Error
+                    logging.info("Dynamixel: range error (id %i)" % (id))
+                if error & 0x10 != 0:  # Bit 4: CheckSum Error
+                    logging.warning("Dynamixel: angle limit error (id %i)" % (id))
+                    self.error_occurred_flag = True
+                if error & 0x20 != 0:  # Bit 5: Overload Error
+                    logging.info("Dynamixel: overload (id %i)" % (id))
+                if error & 0x40 != 0:  # Bit 6: Instruction Error
+                    logging.warning("Dynamixel: instruction error (id %i)" % (id))
+                    self.error_occurred_flag = True
+                if error & 0x80 != 0:  # Bit 7: Unknown Error
+                    logging.warning("Dynamixel: unknown error (id %i)" % (id))
+                    self.error_occurred_flag = True
 
-                if error!=0 and error!=2: # skip angle errors
-                    # TODO Distinguish communication/Hardware errors
-                    raise DxlCommunicationException('Received error code from motor %d: %d'%(id,error))
-                
                 checksum=self.checksum(header[2:]+data[:-1])
                 if checksum!=data[-1]:
                     raise DxlCommunicationException('Invalid checksum')
