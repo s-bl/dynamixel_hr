@@ -266,7 +266,7 @@ class DxlChain:
 
         (nid,data)=self.comm(id,cmd)
         if len(data)!=tot_size:
-            raise DxlCommunicationException('Motor ID %d did not retrieve expected register %s size %d: got %d bytes'%(id,name,esize,len(data)))
+            raise DxlCommunicationException('Motor ID %d did not retrieve expected register %s size %d: got %d bytes'%(id,regs[0],tot_size,len(data)))
 
         response =  dict()
         counter = 0
@@ -346,6 +346,7 @@ class DxlChain:
             elif mode == m.PositionControl:
                 if m.ccw_angle_limit is 0 or m.ccw_angle_limit is None:
                     m.cw_angle_limit, m.ccw_angle_limit = m.registers["goal_pos"].range
+                # print(id, m.cw_angle_limit, m.ccw_angle_limit)
                 self.set_reg(id, "cw_angle_limit", m.cw_angle_limit)
                 self.set_reg(id, "ccw_angle_limit", m.ccw_angle_limit)
                 # self.set_reg(id, "goal_pos", self.get_reg(id, "present_position"))
@@ -521,6 +522,7 @@ class DxlChain:
         return self._sync_read_X_wrapper(ids, 'present_temp')
 
     # Todo: use sync read if it works
+    # it uses bulk_read and this only works with MX servos
     def _sync_read_X_wrapper(self, ids, register):
         if ids is None:
             ids = self.motors
@@ -528,7 +530,9 @@ class DxlChain:
 
     
     def sync_write_pos_speed(self,ids,positions,speeds): 
-        """Performs a synchronized write of 'goal_pos' and 'moving_speed' registers for a set of motors (if possible)"""
+        """Performs a synchronized write of 'goal_pos' and 'moving_speed' registers for a set of motors (if possible)
+         The motors get automatically enabled if they get a goal position or the like
+        """
         regpos=None
         regspeed=None
         # Check motor IDs, goal_pos and moving_speed register address and sizes
