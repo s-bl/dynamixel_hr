@@ -726,6 +726,7 @@ class DxlChain:
         """Disable all the motors on the chain"""
         ids=self.get_motors(ids)
         for id in ids:
+            time.sleep(0.05)
             self.set_reg(id,"torque_enable",0)
         
     def wait_stopped(self,ids=None):
