@@ -1,10 +1,13 @@
 HumaRobotics Dynamixel Library
 ########################################################
 
-Changes in this fork
+Changes in this fork  (by Sebastian Blaes)
 ==========================
 
-2018-07-10: Ported library to Python 3. Added bulk read.
+    * Ported library to Python 3. 
+    * Added bulk read (for all MX types)
+    * support for control modes (position, velocity, torque) added
+    * added a notebook (ipynb) for quick testing
 
 Original
 ==========================
