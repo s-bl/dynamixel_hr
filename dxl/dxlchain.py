@@ -356,7 +356,7 @@ class DxlChain:
                     self.set_reg(id, "torque_control_mode_enable", 1)
                     m.control_mode = mode
                 else:
-                    logging.warning("Set Torque mode failed: Motor id {}" % (id))
+                    logging.warning(f"Set Torque mode failed: Motor id {id}")
 
 
 
@@ -439,8 +439,18 @@ class DxlChain:
 
         return res
 
-
     def bulk_multi_read(self, ids=None, user_regs=None):
+        while True:
+            try:
+                res = self._bulk_multi_read(ids, user_regs)
+                return res
+            except Exception as e:
+                logging.error(e)
+                self.port.flush()
+                while self.port.inWaiting() > 0:
+                    self.port.read()
+
+    def _bulk_multi_read(self, ids=None, user_regs=None):
 
         ids = self.get_motors(ids) # returns all motors if ids is None
 
